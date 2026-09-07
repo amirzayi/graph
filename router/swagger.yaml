@@ -1,0 +1,262 @@
+basePath: /api/v1/tasks
+definitions:
+  handler.changeAssigneeRequest:
+    properties:
+      assignee_id:
+        type: integer
+    type: object
+  handler.changePriorityRequest:
+    properties:
+      priority:
+        type: string
+    type: object
+  handler.changeStatusRequest:
+    properties:
+      status:
+        type: string
+    type: object
+  handler.createTaskRequest:
+    properties:
+      assignee_id:
+        type: integer
+      category:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      parent_id:
+        type: integer
+      priority:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8010
+info:
+  contact:
+    email: mirzayi994@gmail.com
+    name: developer
+    url: https://amirzayi.github.io/
+  description: This is graph interview task api documents.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Graph swagger api
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of tasks with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 10
+        description: Number of items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - description: Filter by status
+        enum:
+        - Todo
+        - InProgress
+        - Done
+        - Cancelled
+        in: query
+        name: status
+        type: string
+      - description: Filter by assignee ID
+        in: query
+        name: assignee_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Get paginated list of tasks
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Creates a new task with the provided details
+      parameters:
+      - description: Task creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Create a new task
+      tags:
+      - Tasks
+  /{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently deletes a task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a task
+      tags:
+      - Tasks
+    get:
+      consumes:
+      - application/json
+      description: Returns a single task by its ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Get task by ID
+      tags:
+      - Tasks
+  /{id}/assignee:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the assignee of a tChangeAssigneeask
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignee update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.changeAssigneeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Change task assignee
+      tags:
+      - Tasks
+  /{id}/priority:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the priority of a task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Priority update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.changePriorityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Change task priority
+      tags:
+      - Tasks
+  /{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Updates only the status of a task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.changeStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Change task status
+      tags:
+      - Tasks
+swagger: "2.0"

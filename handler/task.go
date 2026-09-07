@@ -36,6 +36,17 @@ type createTaskRequest struct {
 	Tags        []string  `json:"tags,omitempty"`
 }
 
+// CreateTask godoc
+// @Summary Create a new task
+// @Description Creates a new task with the provided details
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param request body createTaskRequest true "Task creation request"
+// @Success 201
+// @Failure 400
+// @Failure 500
+// @Router / [post]
 func CreateTask(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var in createTaskRequest
@@ -63,6 +74,17 @@ func CreateTask(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+// GetTask godoc
+// @Summary Get task by ID
+// @Description Returns a single task by its ID
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /{id} [get]
 func GetTask(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
@@ -84,6 +106,19 @@ func GetTask(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+// DeleteTask godoc
+// @Summary Delete a task
+// @Description Permanently deletes a task by ID
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Success 204
+// @Failure 400
+// @Failure 403
+// @Failure 404
+// @Failure 500
+// @Router /{id} [delete]
 func DeleteTask(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
@@ -97,6 +132,10 @@ func DeleteTask(taskService task.Service) func(ctx *gin.Context) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return
 			}
+			if errors.Is(err, task.ErrTaskNotBelongs) {
+				ctx.JSON(403, gin.H{"error": err.Error()})
+				return
+			}
 			ctx.JSON(500, http.StatusText(500))
 			return
 		}
@@ -104,6 +143,19 @@ func DeleteTask(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+// PaginatedListTask godoc
+// @Summary Get paginated list of tasks
+// @Description Returns a paginated list of tasks with optional filters
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number" default(1) minimum(1)
+// @Param page_size query int false "Number of items per page" default(10) minimum(1) maximum(100)
+// @Param status query string false "Filter by status" Enums(Todo, InProgress, Done, Cancelled)
+// @Param assignee_id query int false "Filter by assignee ID"
+// @Success 200
+// @Failure 500
+// @Router / [get]
 func PaginatedListTask(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		page, _ := strconv.ParseInt(ctx.Query("page"), 10, 64)
@@ -130,6 +182,23 @@ func PaginatedListTask(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+type changeStatusRequest struct {
+	Status string `json:"status"`
+}
+
+// ChangeStatus godoc
+// @Summary Change task status
+// @Description Updates only the status of a task
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Param request body changeStatusRequest true "Status update request"
+// @Success 200
+// @Failure 400
+// @Failure 404
+// @Failure 500
+// @Router /{id}/status [patch]
 func ChangeStatus(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
@@ -138,9 +207,7 @@ func ChangeStatus(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": "invalid id param"})
 			return
 		}
-		var in struct {
-			Status string `json:"status"`
-		}
+		var in changeStatusRequest
 		if err := ctx.ShouldBindJSON(&in); err != nil {
 			ctx.JSON(400, gin.H{"error": err})
 			return
@@ -169,6 +236,23 @@ func ChangeStatus(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+type changeAssigneeRequest struct {
+	AssigneeID int `json:"assignee_id"`
+}
+
+// ChangeAssignee godoc
+// @Summary Change task assignee
+// @Description Updates the assignee of a tChangeAssigneeask
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Param request body changeAssigneeRequest true "Assignee update request"
+// @Success 204
+// @Failure 400
+// @Failure 404
+// @Failure 500
+// @Router /{id}/assignee [patch]
 func ChangeAssignee(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
@@ -177,9 +261,7 @@ func ChangeAssignee(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": "invalid id param"})
 			return
 		}
-		var in struct {
-			AssigneeID int `json:"assignee_id"`
-		}
+		var in changeAssigneeRequest
 		if err := ctx.ShouldBindJSON(&in); err != nil {
 			ctx.JSON(400, gin.H{"error": err})
 			return
@@ -196,6 +278,23 @@ func ChangeAssignee(taskService task.Service) func(ctx *gin.Context) {
 	}
 }
 
+type changePriorityRequest struct {
+	Priority string `json:"priority"`
+}
+
+// ChangePriority godoc
+// @Summary Change task priority
+// @Description Updates the priority of a task
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Param request body changePriorityRequest true "Priority update request"
+// @Success 200
+// @Failure 400
+// @Failure 404
+// @Failure 500
+// @Router /{id}/priority [patch]
 func ChangePriority(taskService task.Service) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
@@ -204,9 +303,7 @@ func ChangePriority(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": "invalid id param"})
 			return
 		}
-		var in struct {
-			Priority string `json:"priority"`
-		}
+		var in changePriorityRequest
 		if err := ctx.ShouldBindJSON(&in); err != nil {
 			ctx.JSON(400, gin.H{"error": err})
 			return

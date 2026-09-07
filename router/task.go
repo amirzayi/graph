@@ -4,6 +4,9 @@ import (
 	"github.com/amirzayi/graph/handler"
 	"github.com/amirzayi/graph/task"
 	"github.com/gin-gonic/gin"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Dependencies struct {
@@ -11,6 +14,8 @@ type Dependencies struct {
 }
 
 func Bootstrap(r gin.IRouter, deps Dependencies) {
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	gp := r.Group("/api/v1/tasks")
 
 	gp.POST("", handler.CreateTask(deps.TaskService))

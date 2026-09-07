@@ -60,7 +60,7 @@ func (r sqlRepository) Create(ctx context.Context, t Task) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return t.ID, nil
+	return ts.ID, nil
 }
 
 func (r sqlRepository) ChangeStatus(ctx context.Context, id int64, newStatus Status) error {
