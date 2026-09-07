@@ -2,11 +2,14 @@ package task
 
 import (
 	"context"
+	"errors"
 
 	"github.com/amirzayi/graph/models"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
+
+var ErrNotFound = errors.New("task not found")
 
 type sqlRepository struct {
 	db *gorm.DB
@@ -19,6 +22,9 @@ func NewSQLRepository(db *gorm.DB) sqlRepository {
 func (r sqlRepository) Get(ctx context.Context, id int64) (Task, error) {
 	t, err := gorm.G[models.Task](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return Task{}, ErrNotFound
+		}
 		return Task{}, err
 	}
 	return Task{
@@ -72,7 +78,7 @@ func (r sqlRepository) ChangePriority(ctx context.Context, id int64, newPriority
 	return err
 }
 
-func (r sqlRepository) List(ctx context.Context, req ListRequest) (ListResponse, error) {
+func (r sqlRepository) List(ctx context.Context, req ListRequest) ([]Task, int64, error) {
 	q := r.db.Model(&models.Task{}).WithContext(ctx)
 
 	if req.AssigneeID > 0 {
@@ -83,20 +89,20 @@ func (r sqlRepository) List(ctx context.Context, req ListRequest) (ListResponse,
 	}
 	var count int64
 	if err := q.Count(&count).Error; err != nil {
-		return ListResponse{}, err
+		return nil, 0, err
 	}
 	if count == 0 {
-		return ListResponse{}, nil
+		return []Task{}, 0, nil
 	}
 
 	var tasks []models.Task
 	if err := q.Limit(req.PageSize).Offset((req.Page - 1) * req.PageSize).Find(&tasks).Error; err != nil {
-		return ListResponse{}, err
+		return nil, 0, err
 	}
 
-	response := ListResponse{Total: count, Tasks: make([]Task, 0, len(tasks))}
+	response := make([]Task, 0, len(tasks))
 	for _, t := range tasks {
-		response.Tasks = append(response.Tasks, Task{
+		response = append(response, Task{
 			ID:          t.ID,
 			Title:       t.Title,
 			Description: t.Description,
@@ -111,5 +117,10 @@ func (r sqlRepository) List(ctx context.Context, req ListRequest) (ListResponse,
 			CreatedAt:   t.CreatedAt,
 		})
 	}
-	return response, nil
+	return response, count, nil
+}
+
+func (r sqlRepository) Delete(ctx context.Context, id int64) error {
+	_, err := gorm.G[models.Task](r.db).Where("id = ?", id).Delete(ctx)
+	return err
 }

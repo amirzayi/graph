@@ -12,19 +12,25 @@ const (
 	EventTaskStatusChanged   = "task.status_changed"
 	EventTaskAssigneeChanged = "task.status_changed"
 	EventTaskPriorityChanged = "task.priority_changed"
+	EventTaskDeleted         = "task.deleted"
 )
 
 var (
 	ErrTaskNotBelongs       = errors.New("task not belog to you")
 	ErrChangeStatusNotValid = errors.New("requested status couldn't apply to present task status")
 	ErrAlreadyAssigned      = errors.New("task already assigned")
+	ErrDeleteTask           = errors.New("cannot delete done or in progress task")
+	ErrInvalidPriority      = errors.New("invalid priority")
 )
 
 type Service interface {
-	New(context.Context, NewTask) (Task, error)
-	ChangeStatus(context.Context, int, Status) error
-	ChangeAssignee(context.Context, int, int) error
-	ChangePriority(context.Context, int, Priority) error
+	New(context.Context, NewTask, int) (Task, error)
+	ChangeStatus(context.Context, int64, Status, int) error
+	ChangeAssignee(context.Context, int64, int, int) error
+	ChangePriority(context.Context, int64, Priority, int) error
+	Get(context.Context, int64) (Task, error)
+	Delete(context.Context, int64, int) error
+	List(context.Context, ListRequest) ([]Task, int64, error)
 }
 
 type service struct {
@@ -32,11 +38,11 @@ type service struct {
 	audit Audit
 }
 
-func NewService(repo Repository, audit Audit) service {
-	return service{repo: repo, audit: audit}
+func NewService(repo Repository, audit Audit) *service {
+	return &service{repo: repo, audit: audit}
 }
 
-func (s *service) New(ctx context.Context, creatorID int, arg NewTask) (Task, error) {
+func (s *service) New(ctx context.Context, arg NewTask, creatorID int) (Task, error) {
 	t := Task{
 		Title:       arg.Title,
 		Description: arg.Description,
@@ -45,6 +51,10 @@ func (s *service) New(ctx context.Context, creatorID int, arg NewTask) (Task, er
 		AssigneeID:  arg.AssigneeID,
 		CreatorID:   creatorID,
 		CreatedAt:   time.Now(),
+		ParentID:    arg.ParentID,
+		DueDate:     arg.DueDate,
+		Category:    arg.Category,
+		Tags:        arg.Tags,
 	}
 	id, err := s.repo.Create(ctx, t)
 	if err != nil {
@@ -57,7 +67,11 @@ func (s *service) New(ctx context.Context, creatorID int, arg NewTask) (Task, er
 	return t, nil
 }
 
-func (s *service) ChangeStatus(ctx context.Context, id, currentUserID int, newStatus Status) error {
+func (s *service) Get(ctx context.Context, id int64) (Task, error) {
+	return s.repo.Get(ctx, id)
+}
+
+func (s *service) ChangeStatus(ctx context.Context, id int64, newStatus Status, currentUserID int) error {
 	t, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return err
@@ -78,7 +92,7 @@ func (s *service) ChangeStatus(ctx context.Context, id, currentUserID int, newSt
 	return nil
 }
 
-func (s *service) ChangeAssignee(ctx context.Context, id, newAssigneeID int) error {
+func (s *service) ChangeAssignee(ctx context.Context, id int64, newAssigneeID, currentUserID int) error {
 	t, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return err
@@ -89,26 +103,78 @@ func (s *service) ChangeAssignee(ctx context.Context, id, newAssigneeID int) err
 	if err = s.repo.ChangeAssignee(ctx, id, newAssigneeID); err != nil {
 		return err
 	}
-	if err = s.audit.Log(EventTaskAssigneeChanged, id); err != nil {
+	if err = s.audit.Log(EventTaskAssigneeChanged, currentUserID); err != nil {
 		slog.Error("change assignee: audit log failed", "error", err)
 	}
 	return nil
 }
 
-func (s *service) ChangePriority(ctx context.Context, id int, newPriority Priority) error {
+func (s *service) ChangePriority(ctx context.Context, id int64, newPriority Priority, currentUserID int) error {
+	if newPriority == priorityDefault {
+		return ErrInvalidPriority
+	}
 	t, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return err
 	}
 	// due to keep idempotent
 	if t.Priority == newPriority {
+		println("equal")
 		return nil
 	}
+	println("changing")
 	if err = s.repo.ChangePriority(ctx, id, newPriority); err != nil {
 		return err
 	}
-	if err = s.audit.Log(EventTaskPriorityChanged, id); err != nil {
+	println("done")
+
+	if err = s.audit.Log(EventTaskPriorityChanged, currentUserID); err != nil {
 		slog.Error("change priority: audit log failed", "error", err)
+	}
+	return nil
+}
+
+type ListRequest struct {
+	Page       int
+	PageSize   int
+	Status     Status
+	AssigneeID int
+}
+type ListResponse struct {
+	Tasks []Task
+	Total int64
+}
+
+func (s *service) List(ctx context.Context, req ListRequest) ([]Task, int64, error) {
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 {
+		req.PageSize = 10
+	}
+	return s.repo.List(ctx, req)
+}
+
+func (s *service) Delete(ctx context.Context, id int64, currentUserID int) error {
+	t, err := s.repo.Get(ctx, id)
+	if err != nil {
+		// keep idempotent: already deleted
+		if errors.Is(err, ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+	if t.Status == StatusDone || t.Status == StatusInProgress {
+		return ErrDeleteTask
+	}
+	if t.CreatorID != currentUserID {
+		return ErrTaskNotBelongs
+	}
+	if err = s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	if err = s.audit.Log(EventTaskDeleted, currentUserID); err != nil {
+		slog.Error("delete task: audit log failed", "error", err)
 	}
 	return nil
 }
