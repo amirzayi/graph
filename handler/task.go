@@ -61,7 +61,6 @@ func CreateTask(taskService task.Service) func(ctx *gin.Context) {
 			Priority:    convertTaskPriorityTextToEnum(in.Priority),
 			DueDate:     in.DueDate,
 			AssigneeID:  in.AssigneeID,
-			CreatorID:   ctx.GetInt("user_id"),
 			ParentID:    in.ParentID,
 			Category:    in.Category,
 			Tags:        in.Tags,
@@ -215,10 +214,6 @@ func ChangeStatus(taskService task.Service) func(ctx *gin.Context) {
 		if err = taskService.ChangeStatus(ctx.Request.Context(), id, convertTaskStatusTextToEnum(in.Status), ctx.GetInt("user_id")); err != nil {
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
-				return
-			}
-			if errors.Is(err, task.ErrChangeStatusNotValid) {
-				ctx.JSON(400, gin.H{"error": err.Error()})
 				return
 			}
 			if errors.Is(err, task.ErrChangeStatusNotValid) {
