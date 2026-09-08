@@ -18,7 +18,6 @@ const (
 var (
 	ErrTaskNotBelongs       = errors.New("task not belog to you")
 	ErrChangeStatusNotValid = errors.New("requested status couldn't apply to present task status")
-	ErrAlreadyAssigned      = errors.New("task already assigned")
 	ErrDeleteTask           = errors.New("cannot delete done or in progress task")
 	ErrInvalidPriority      = errors.New("invalid priority")
 )
@@ -97,8 +96,9 @@ func (s *service) ChangeAssignee(ctx context.Context, id int64, newAssigneeID, c
 	if err != nil {
 		return err
 	}
+	// keep idempotent
 	if t.AssigneeID == newAssigneeID {
-		return ErrAlreadyAssigned
+		return nil
 	}
 	if err = s.repo.ChangeAssignee(ctx, id, newAssigneeID); err != nil {
 		return err
