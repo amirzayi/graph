@@ -43,9 +43,7 @@ func main() {
 
 	ginrouter := gin.Default()
 
-	router.Bootstrap(ginrouter, router.Dependencies{
-		TaskService: taskSvc,
-	})
+	router.Bootstrap(ginrouter, taskSvc)
 
 	httpsrv := http.Server{
 		Addr:    ":8010",

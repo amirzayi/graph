@@ -9,21 +9,17 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-type Dependencies struct {
-	TaskService task.Service
-}
-
-func Bootstrap(r gin.IRouter, deps Dependencies) {
+func Bootstrap(r gin.IRouter, taskService task.Service) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	gp := r.Group("/api/v1/tasks")
 
-	gp.POST("", handler.CreateTask(deps.TaskService))
-	gp.GET("", handler.PaginatedListTask(deps.TaskService))
-	gp.GET("/:id", handler.GetTask(deps.TaskService))
-	gp.DELETE("/:id", handler.DeleteTask(deps.TaskService))
-	gp.PATCH("/:id/status", handler.ChangeStatus(deps.TaskService))
-	gp.PATCH("/:id/assignee", handler.ChangeAssignee(deps.TaskService))
-	gp.PATCH("/:id/priority", handler.ChangePriority(deps.TaskService))
+	gp.POST("", handler.CreateTask(taskService))
+	gp.GET("", handler.PaginatedListTask(taskService))
+	gp.GET("/:id", handler.GetTask(taskService))
+	gp.DELETE("/:id", handler.DeleteTask(taskService))
+	gp.PATCH("/:id/status", handler.ChangeStatus(taskService))
+	gp.PATCH("/:id/assignee", handler.ChangeAssignee(taskService))
+	gp.PATCH("/:id/priority", handler.ChangePriority(taskService))
 
 }

@@ -33,10 +33,7 @@ func TestMain(m *testing.M) {
 	}
 	db.AutoMigrate(&models.Task{})
 
-	router.Bootstrap(ginrouter, router.Dependencies{
-		TaskService: task.NewService(task.NewSQLRepository(db), audit.NewDiscarded()),
-	})
-
+	router.Bootstrap(ginrouter, task.NewService(task.NewSQLRepository(db), audit.NewDiscarded()))
 	m.Run()
 }
 

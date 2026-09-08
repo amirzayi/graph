@@ -60,7 +60,7 @@ func (s *service) New(ctx context.Context, arg NewTask, creatorID int) (Task, er
 		return Task{}, err
 	}
 	t.ID = id
-	if err = s.audit.Log(EventTaskCreated, arg.CreatorID); err != nil {
+	if err = s.audit.Log(EventTaskCreated, creatorID); err != nil {
 		slog.Error("create task: audit log failed", "error", err)
 	}
 	return t, nil

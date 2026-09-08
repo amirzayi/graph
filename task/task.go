@@ -57,7 +57,6 @@ type NewTask struct {
 	Priority    Priority
 	DueDate     time.Time
 	AssigneeID  int
-	CreatorID   int
 	ParentID    int64
 	Category    string
 	Tags        []string
