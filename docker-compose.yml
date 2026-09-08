@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: task-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amir}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mirzaei}
+      POSTGRES_DB: ${POSTGRES_DB:-task}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-amir} -d ${POSTGRES_DB:-task}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-service
+    restart: unless-stopped
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-amir}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-mirzaei}
+      - DB_NAME=${POSTGRES_DB:-task}
+    ports:DB_USER
+      - "8010:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: ./bin
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
