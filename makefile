@@ -23,3 +23,12 @@ coverage:
 	go mod tidy
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out
+
+bench:
+	go test -bench=. -run=^$ -benchmem ./handler
+
+
+profiling:
+	go test -bench=. -run=^$ -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./handler
+	go tool pprof -http=:8083 cpu.prof &
+	go tool pprof -http=:8084 mem.prof

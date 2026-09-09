@@ -6,6 +6,6 @@ func NewDiscarded() discarded {
 	return discarded{}
 }
 
-func (discarded) Log(string, int) error {
+func (discarded) Log(string, int, string) error {
 	return nil
 }

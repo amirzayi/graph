@@ -33,14 +33,14 @@ import (
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
-	godotenv.Load()
+	_ = godotenv.Load()
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
 	db, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.AutoMigrate(&models.Task{})
+	_ = db.AutoMigrate(&models.Task{})
 
 	repo := task.NewSQLRepository(db)
 	auditLog := audit.NewIOWriter(os.Stdout)

@@ -18,7 +18,7 @@ import (
 func TestCreate(t *testing.T) {
 	t.Parallel()
 	h := handler.CreateTask(&mockTaskService{
-		NewFunc: func(ctx context.Context, nt task.NewTask, i int) (task.Task, error) {
+		NewFunc: func(ctx context.Context, nt task.NewTask, i int, traceID string) (task.Task, error) {
 			if i < 1 {
 				return task.Task{}, errors.New("bad user_id")
 			}
@@ -86,7 +86,7 @@ func TestCreate(t *testing.T) {
 func TestGetTask(t *testing.T) {
 	t.Parallel()
 	h := handler.GetTask(&mockTaskService{
-		GetFunc: func(ctx context.Context, i int64) (task.Task, error) {
+		GetFunc: func(ctx context.Context, i int64, traceID string) (task.Task, error) {
 			if i == 1000 {
 				return task.Task{}, task.ErrNotFound
 			}
@@ -138,7 +138,7 @@ func TestGetTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	t.Parallel()
 	h := handler.DeleteTask(&mockTaskService{
-		DeleteFunc: func(ctx context.Context, i1 int64, i2 int) error {
+		DeleteFunc: func(ctx context.Context, i1 int64, i2 int, traceID string) error {
 			if i1 == 755 {
 				return task.ErrNotFound
 			}
@@ -216,7 +216,7 @@ func TestDeleteTask(t *testing.T) {
 func TestChangeStatus(t *testing.T) {
 	t.Parallel()
 	h := handler.ChangeStatus(&mockTaskService{
-		ChangeStatusFunc: func(ctx context.Context, i1 int64, i2 task.Status, i3 int) error {
+		ChangeStatusFunc: func(ctx context.Context, i1 int64, i2 task.Status, i3 int, traceID string) error {
 			if i1 == 755 {
 				return task.ErrNotFound
 			}
@@ -313,7 +313,7 @@ func TestChangeStatus(t *testing.T) {
 func TestChangeAssignee(t *testing.T) {
 	t.Parallel()
 	h := handler.ChangeAssignee(&mockTaskService{
-		ChangeAssigneeFunc: func(ctx context.Context, i1 int64, i2 int, i3 int) error {
+		ChangeAssigneeFunc: func(ctx context.Context, i1 int64, i2 int, i3 int, traceID string) error {
 			if i1 == 755 {
 				return task.ErrNotFound
 			}
@@ -385,7 +385,7 @@ func TestChangeAssignee(t *testing.T) {
 func TestChangePriority(t *testing.T) {
 	t.Parallel()
 	h := handler.ChangePriority(&mockTaskService{
-		ChangePriorityFunc: func(ctx context.Context, i1 int64, i2 task.Priority, i3 int) error {
+		ChangePriorityFunc: func(ctx context.Context, i1 int64, i2 task.Priority, i3 int, traceID string) error {
 			if i1 == 755 {
 				return task.ErrNotFound
 			}
@@ -461,7 +461,7 @@ func TestPaginatedListTask(t *testing.T) {
 	t.Parallel()
 
 	h := handler.PaginatedListTask(&mockTaskService{
-		ListFunc: func(ctx context.Context, req task.ListRequest) ([]task.Task, int64, error) {
+		ListFunc: func(ctx context.Context, req task.ListRequest, traceID string) ([]task.Task, int64, error) {
 			mockTasks := []task.Task{
 				{
 					ID:       1,

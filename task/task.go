@@ -63,7 +63,7 @@ type NewTask struct {
 }
 
 type Audit interface {
-	Log(event string, creator int) error
+	Log(event string, creator int, traceID string) error
 }
 
 type Repository interface {

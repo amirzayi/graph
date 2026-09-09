@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -54,7 +55,7 @@ func CreateTask(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": err})
 			return
 		}
-
+		traceID := ctx.GetString("trace_id")
 		t, err := taskService.New(ctx.Request.Context(), task.NewTask{
 			Title:       in.Title,
 			Description: in.Description,
@@ -64,8 +65,9 @@ func CreateTask(taskService task.Service) func(ctx *gin.Context) {
 			ParentID:    in.ParentID,
 			Category:    in.Category,
 			Tags:        in.Tags,
-		}, ctx.GetInt("user_id"))
+		}, ctx.GetInt("user_id"), traceID)
 		if err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			ctx.JSON(500, gin.H{"error": err})
 			return
 		}
@@ -92,8 +94,10 @@ func GetTask(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": "invalid id param"})
 			return
 		}
-		t, err := taskService.Get(ctx.Request.Context(), id)
+		traceID := ctx.GetString("trace_id")
+		t, err := taskService.Get(ctx.Request.Context(), id, traceID)
 		if err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return
@@ -126,7 +130,9 @@ func DeleteTask(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": "invalid id param"})
 			return
 		}
-		if err = taskService.Delete(ctx.Request.Context(), id, ctx.GetInt("user_id")); err != nil {
+		traceID := ctx.GetString("trace_id")
+		if err = taskService.Delete(ctx.Request.Context(), id, ctx.GetInt("user_id"), traceID); err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return
@@ -160,13 +166,15 @@ func PaginatedListTask(taskService task.Service) func(ctx *gin.Context) {
 		page, _ := strconv.ParseInt(ctx.Query("page"), 10, 64)
 		pageSize, _ := strconv.ParseInt(ctx.Query("page_size"), 10, 64)
 		assigneeID, _ := strconv.ParseInt(ctx.Query("assignee_id"), 10, 64)
+		traceID := ctx.GetString("trace_id")
 		tasks, total, err := taskService.List(ctx.Request.Context(), task.ListRequest{
 			Page:       int(page),
 			PageSize:   int(pageSize),
 			Status:     convertTaskStatusTextToEnum(ctx.Query("status")),
 			AssigneeID: int(assigneeID),
-		})
+		}, traceID)
 		if err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			ctx.JSON(500, http.StatusText(500))
 			return
 		}
@@ -211,7 +219,9 @@ func ChangeStatus(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": err})
 			return
 		}
-		if err = taskService.ChangeStatus(ctx.Request.Context(), id, convertTaskStatusTextToEnum(in.Status), ctx.GetInt("user_id")); err != nil {
+		traceID := ctx.GetString("trace_id")
+		if err = taskService.ChangeStatus(ctx.Request.Context(), id, convertTaskStatusTextToEnum(in.Status), ctx.GetInt("user_id"), ctx.GetString("trace_id")); err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return
@@ -261,7 +271,9 @@ func ChangeAssignee(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": err})
 			return
 		}
-		if err = taskService.ChangeAssignee(ctx.Request.Context(), id, in.AssigneeID, ctx.GetInt("user_id")); err != nil {
+		traceID := ctx.GetString("trace_id")
+		if err = taskService.ChangeAssignee(ctx.Request.Context(), id, in.AssigneeID, ctx.GetInt("user_id"), ctx.GetString("trace_id")); err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return
@@ -303,7 +315,9 @@ func ChangePriority(taskService task.Service) func(ctx *gin.Context) {
 			ctx.JSON(400, gin.H{"error": err})
 			return
 		}
-		if err = taskService.ChangePriority(ctx.Request.Context(), id, convertTaskPriorityTextToEnum(in.Priority), ctx.GetInt("user_id")); err != nil {
+		traceID := ctx.GetString("trace_id")
+		if err = taskService.ChangePriority(ctx.Request.Context(), id, convertTaskPriorityTextToEnum(in.Priority), ctx.GetInt("user_id"), traceID); err != nil {
+			slog.Error("api failed", "err", err, "trace", traceID)
 			if errors.Is(err, task.ErrNotFound) {
 				ctx.JSON(404, gin.H{"error": err.Error()})
 				return

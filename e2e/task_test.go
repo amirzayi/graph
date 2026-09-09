@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic("Failed to connect to test database: " + err.Error())
 	}
-	db.AutoMigrate(&models.Task{})
+	_ = db.AutoMigrate(&models.Task{})
 
 	router.Bootstrap(ginrouter, task.NewService(task.NewSQLRepository(db), audit.NewDiscarded()))
 	m.Run()
@@ -42,7 +42,9 @@ func TestListTask(t *testing.T) {
 		resp, err := http.Get(httpSrvAddress + "/api/v1/tasks")
 		testhelper.MustNilError(t, err)
 		testhelper.MustEqual(t, resp.StatusCode, http.StatusOK)
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		var got map[string]any
 		err = json.NewDecoder(resp.Body).Decode(&got)
@@ -66,7 +68,9 @@ func TestListTask(t *testing.T) {
 		resp, err := http.Get(httpSrvAddress + "/api/v1/tasks")
 		testhelper.MustNilError(t, err)
 		testhelper.MustEqual(t, resp.StatusCode, http.StatusOK)
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		var got map[string]any
 		err = json.NewDecoder(resp.Body).Decode(&got)
@@ -102,7 +106,9 @@ func TestGetTask(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("%s/api/v1/tasks/%d", httpSrvAddress, id))
 		testhelper.MustNilError(t, err)
 		testhelper.MustEqual(t, resp.StatusCode, http.StatusOK)
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		var got map[string]any
 		err = json.NewDecoder(resp.Body).Decode(&got)
