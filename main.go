@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/amirzayi/graph/audit"
 	"github.com/amirzayi/graph/models"
@@ -12,6 +13,7 @@ import (
 	"github.com/amirzayi/graph/task"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -34,17 +36,28 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	_ = godotenv.Load()
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+
+	dbdsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
-	db, err := gorm.Open(postgres.Open(dsn))
+	db, err := gorm.Open(postgres.Open(dbdsn))
 	if err != nil {
 		log.Fatal(err)
 	}
 	_ = db.AutoMigrate(&models.Task{})
 
+	redisdsn := fmt.Sprintf("redis://%s:%s@%s:%s/0",
+		os.Getenv("REDIS_USER"), os.Getenv("REDIS_PASSWORD"), os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+	opts, err := redis.ParseURL(redisdsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rcl := redis.NewClient(opts)
+
 	repo := task.NewSQLRepository(db)
+	cache := task.NewRedisCachingRepository(rcl, repo, time.Hour)
 	auditLog := audit.NewIOWriter(os.Stdout)
-	taskSvc := task.NewService(repo, auditLog)
+	taskSvc := task.NewService(cache, auditLog)
 
 	ginrouter := gin.Default()
 

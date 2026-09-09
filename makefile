@@ -1,4 +1,4 @@
-.PHONY: test coverage
+.PHONY: deps up down test run coverage bench profiling
 
 .DEFAULT_GOAL := deps
 
