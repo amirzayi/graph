@@ -19,6 +19,12 @@ func NewSQLRepository(db *gorm.DB) sqlRepository {
 	return sqlRepository{db: db}
 }
 
+func (r sqlRepository) Total(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Task{}).WithContext(ctx).Count(&count).Error
+	return count, err
+}
+
 func (r sqlRepository) Get(ctx context.Context, id int64) (Task, error) {
 	t, err := gorm.G[models.Task](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {

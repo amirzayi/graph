@@ -74,4 +74,5 @@ type Repository interface {
 	ChangePriority(context.Context, int64, Priority) error
 	List(context.Context, ListRequest) ([]Task, int64, error)
 	Delete(ctx context.Context, id int64) error
+	Total(context.Context) (int64, error)
 }

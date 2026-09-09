@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"time"
+
+	"github.com/amirzayi/graph/metric"
 )
 
 const (
@@ -38,6 +40,8 @@ type service struct {
 }
 
 func NewService(repo Repository, audit Audit) *service {
+	total, _ := repo.Total(context.Background())
+	metric.TotalTasks.Set(float64(total))
 	return &service{repo: repo, audit: audit}
 }
 
@@ -59,6 +63,7 @@ func (s *service) New(ctx context.Context, arg NewTask, creatorID int, traceID s
 	if err != nil {
 		return Task{}, err
 	}
+	metric.TotalTasks.Inc()
 	t.ID = id
 	if err = s.audit.Log(EventTaskCreated, creatorID, traceID); err != nil {
 		slog.Error("create task: audit log failed", "error", err)
@@ -173,6 +178,7 @@ func (s *service) Delete(ctx context.Context, id int64, currentUserID int, trace
 	if err = s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
+	metric.TotalTasks.Dec()
 	if err = s.audit.Log(EventTaskDeleted, currentUserID, traceID); err != nil {
 		slog.Error("delete task: audit log failed", "error", err)
 	}
