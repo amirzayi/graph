@@ -2,7 +2,9 @@ package handler
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/amirzayi/graph/task"
 	"github.com/amirzayi/graph/testhelper"
@@ -124,3 +126,64 @@ func TestConvertTaskStatusToText(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkSlice(b *testing.B) {
+	tasks := generateTestTasks(100)
+	for b.Loop() {
+		taskReponse := []taskResponse{}
+		for _, t := range tasks {
+			taskReponse = append(taskReponse, convertTaskDomainToResponse(t))
+		}
+	}
+}
+
+func BenchmarkPreallocateSlice(b *testing.B) {
+	tasks := generateTestTasks(100)
+	for b.Loop() {
+		taskReponse := make([]taskResponse, 0, len(tasks))
+		for _, t := range tasks {
+			taskReponse = append(taskReponse, convertTaskDomainToResponse(t))
+		}
+	}
+}
+
+// generateTestTasks creates tasks for use in benchmarks and tests
+func generateTestTasks(n int) []task.Task {
+
+	tasks := make([]task.Task, n)
+	for i := range n {
+		tasks[i] = task.Task{
+			ID:          int64(i + 1),
+			Title:       fmt.Sprintf("Test Task %d", i+1),
+			Description: fmt.Sprintf("Description for test task %d", i+1),
+			Status:      statuses[rand.Intn(len(statuses)-1)],
+			Priority:    priorities[rand.Intn(len(priorities)-1)],
+			DueDate:     time.Now().Add(time.Duration(rand.Intn(30)) * 24 * time.Hour),
+			Category:    categories[rand.Intn(len(categories)-1)],
+			ParentID:    rand.Int63n(100),
+			Tags:        generateTags(rand.Intn(3)),
+			AssigneeID:  rand.Intn(100) + 1,
+			CreatorID:   rand.Intn(100) + 1,
+			CreatedAt:   time.Now().Add(-time.Duration(rand.Intn(30)) * 24 * time.Hour),
+		}
+	}
+	return tasks
+}
+
+func generateTags(count int) []string {
+	if count == 0 {
+		return []string{}
+	}
+	allTags := []string{"urgent", "important", "backlog", "sprint", "bug", "feature"}
+	tags := make([]string, count)
+	for i := range count {
+		tags[i] = allTags[rand.Intn(len(allTags))]
+	}
+	return tags
+}
+
+var (
+	statuses   = []task.Status{task.StatusTodo, task.StatusInProgress, task.StatusDone, task.StatusCancelled}
+	priorities = []task.Priority{task.PriorityLow, task.PriorityMedium, task.PriorityHigh}
+	categories = []string{"Work", "Personal", "Shopping", "Health", "Education", "Finance"}
+)
